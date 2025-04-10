@@ -83,7 +83,7 @@ bit_stream interpret(const string& code, const bit_stream& input)
 	int offset = 0;
 	
 	bit_stream output;
-	vector<bool> tape(256, 0);
+	vector<bool> tape(1 << 16, 0);
 
 	int pc = 0;
 	while(pc < code.size())
@@ -121,7 +121,7 @@ bit_stream interpret(const string& code, const bit_stream& input)
 				// This is not efficient but should not happen often.
 				// It makes the normal operations very fast and simple.
 				tape.resize(new_sz);
-				copy(tape.begin(), tape.begin() + sz, tape.begin() + sz);
+				copy(tape.cbegin(), tape.cbegin() + sz, tape.begin() + sz);
 				fill(tape.begin(), tape.begin() + sz, false);
 				offset += sz;
 			}
@@ -129,6 +129,7 @@ bit_stream interpret(const string& code, const bit_stream& input)
 			break;
 		case '>': // Move p right by one cell.
 			{
+				++p;
 				size_t sz = tape.size();
 				if (p + offset >= sz) {
 					size_t new_sz = 2 * sz;
@@ -181,7 +182,6 @@ const char * hw =
 ";+;+;+;"
 ;
 
-
 /*
  * Reverse the input. For example:
  *
@@ -192,14 +192,23 @@ int main(int argc, char* argv[])
 {
 	if (argc == 2)
 	{
+#ifdef TEST
 		auto program = ">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+"
 			"<[+<]>>>>>>>>>>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]+<<<<<<<<+[>+]"
 			"<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>;>;>;>;>;>;>;>;<<<<<<<<+<<<<<<<<+[>+]"
 			"<[<]>>>>>>>>>]<[+<]";
 
+#else
 		// OK
-		// program = hw;
-		cout << from_bit_stream(interpret(program, to_bit_stream(argv[1])));
+		auto program = hw;
+		cout << from_bit_stream(interpret(program, to_bit_stream(argv[1]))) << endl;
+		// OK
+		cout << from_bit_stream(interpret(",;,;,;,;,;,;,;,;", to_bit_stream("A"))) << endl;
+		// OK
+		cout << from_bit_stream(interpret(",;,;,;,;,;,;,;,; ,;,;,;,;,;,;,;,;", to_bit_stream("AB"))) << endl;
+		// OK
+		cout << from_bit_stream(interpret(",>,>,>,>,>,>,>,> <<<<<<<< ;>;>;>;>;>;>;>;>", to_bit_stream("Z"))) << endl;
+#endif
 	}
 	return 0;
 }
