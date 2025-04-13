@@ -5,6 +5,8 @@
 
 using namespace std;
 
+// This is not efficient when resizing but should not happen often.
+// It makes the normal operations very fast and simple, and is memory-efficient.
 struct bit_stream : vector<bool> {
 	void push_char(unsigned char ch) {
 		for (int i = 0; i < 8; ++i) {
@@ -14,10 +16,10 @@ struct bit_stream : vector<bool> {
 	}
 
 	unsigned char get_char(size_t offset) const {
-		char ch = 0;;
+		char ch = 0;
 		size_t sz = size();
 		for (size_t index = offset + 8; index-- > offset;) {
-			bool bit = index < sz ? (*this)[index] : false;
+			int bit = index < sz ? (*this)[index] : 0;
 			ch <<= 1;
 			ch |= bit;
 		}
@@ -25,7 +27,7 @@ struct bit_stream : vector<bool> {
 	}
 };
 
-bit_stream to_bit_stream(const string& s)
+static bit_stream to_bit_stream(const string& s)
 {
 	bit_stream bs;
 	for (auto c : s) {
@@ -38,8 +40,7 @@ static string from_bit_stream(const bit_stream& bs)
 {
 	string s;
 	for (size_t ix = 0; ix < bs.size(); ix += 8) {
-		char ch = bs.get_char(ix);
-		s += ch;
+		s += bs.get_char(ix);
 	}
 	return s;
 }
@@ -76,19 +77,20 @@ static int backward(const string& code, int pc) {
  * Take a program, "code", and the contents of the input stream, "input", and
  * execute the program. The contents of the output stream are returned.
  */
-bit_stream interpret(const string& code, const bit_stream& input)
+static bit_stream interpret(const string& code, const bit_stream& input)
 {
 	size_t input_index = 0;
 	int p = 0;
-	int offset = 0;
+	ptrdiff_t offset = 0;
 	
 	bit_stream output;
+	// Arbitrary initial size.
 	vector<bool> tape(1 << 16, 0);
 
 	int pc = 0;
 	while(pc < code.size())
 	{
-		char ch = code[pc];
+		const char ch = code[pc];
 		switch (ch) {
 		case '+': // Negate the bit on the tape under p (i.e. a 0 becomes a 1 and a 1 becomes a 0).
 			tape[p + offset] = !tape[p + offset];
@@ -116,13 +118,9 @@ bit_stream interpret(const string& code, const bit_stream& input)
 		case '<' : // Move p left by one cell.
 			--p;
 			if (p + offset < 0) {
-				size_t sz = tape.size();
-				size_t new_sz = 2 * sz;
-				// This is not efficient but should not happen often.
-				// It makes the normal operations very fast and simple.
-				tape.resize(new_sz);
-				copy(tape.cbegin(), tape.cbegin() + sz, tape.begin() + sz);
-				fill(tape.begin(), tape.begin() + sz, false);
+				const size_t sz = tape.size();
+				const size_t new_sz = 2 * sz;
+				tape.insert(tape.begin(), sz, false);
 				offset += sz;
 			}
 			++pc;
@@ -130,12 +128,9 @@ bit_stream interpret(const string& code, const bit_stream& input)
 		case '>': // Move p right by one cell.
 			{
 				++p;
-				size_t sz = tape.size();
+				const ptrdiff_t sz = tape.size();
 				if (p + offset >= sz) {
-					size_t new_sz = 2 * sz;
-					// This is not efficient but should not happen often.
-					// It makes the normal operations very fast and simple.
-					tape.resize(new_sz, false);
+					tape.resize(2 * sz, false);
 				}
 				++pc;
 			}
@@ -219,7 +214,7 @@ static void test()
  */
 int main(int argc, char* argv[])
 {
-	if (argc == 2)
+	if (argc == 20000)
 	{
 		auto program = ">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+"
 			"<[+<]>>>>>>>>>>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]+<<<<<<<<+[>+]"
@@ -229,6 +224,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
+		// If no command-line argument.
 		test();
 	}
 	return 0;
