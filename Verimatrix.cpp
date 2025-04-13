@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 using namespace std;
@@ -35,7 +36,6 @@ bit_stream to_bit_stream(const string& s)
 
 static string from_bit_stream(const bit_stream& bs)
 {
-	cout << "from_bit_stream bs.size()=" << bs.size() << endl;
 	string s;
 	for (size_t ix = 0; ix < bs.size(); ix += 8) {
 		char ch = bs.get_char(ix);
@@ -164,23 +164,52 @@ bit_stream interpret(const string& code, const bit_stream& input)
 	return output;
 }
 
-// OK
-const char * hw = 
-";;;+;+;;+;+;" 
-"+;+;+;+;;+;;+;" 
-";;+;;+;+;;+;" 
-";;+;;+;+;;+;"
-"+;;;;+;+;;+;" 
-";;+;;+;+;+;;" 
-";;;;;+;+;;"
-"+;;;+;+;;;+;" 
-"+;;;;+;+;;+;" 
-";+;+;;+;;;+;" 
-";;+;;+;+;;+;" 
-";;+;+;;+;;+;" 
-"+;+;;;;+;+;;" 
-";+;+;+;"
-;
+static void test_one(const char* program, const char* input, const char* expected)
+{
+	ostringstream sstrm;
+	sstrm << from_bit_stream(interpret(program, to_bit_stream(input)));
+	string actual = sstrm.str();
+	cout << program << " " << input << " : ";
+	if (actual != expected) {
+		cout << "Error:" << actual << " instead of " << expected;
+	}
+	else {
+		cout << "OK:" << actual;
+	}
+	cout << endl;
+}
+
+static void test()
+{
+	const char* hw =
+		";;;+;+;;+;+;"
+		"+;+;+;+;;+;;+;"
+		";;+;;+;+;;+;"
+		";;+;;+;+;;+;"
+		"+;;;;+;+;;+;"
+		";;+;;+;+;+;;"
+		";;;;;+;+;;"
+		"+;;;+;+;;;+;"
+		"+;;;;+;+;;+;"
+		";+;+;;+;;;+;"
+		";;+;;+;+;;+;"
+		";;+;+;;+;;+;"
+		"+;+;;;;+;+;;"
+		";+;+;+;"
+		;
+	test_one(hw, "", "Hello, world!\n");
+	test_one(",;,;,;,;,;,;,;,;", "A", "A");
+	test_one(",;,;,;,;,;,;,;,; ,;,;,;,;,;,;,;,;", "AB", "AB");
+	test_one(",>,>,>,>,>,>,>,> <<<<<<<< ;>;>;>;>;>;>;>;>", "Z", "Z");
+	auto reverter = ">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+"
+		"<[+<]>>>>>>>>>>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]+<<<<<<<<+[>+]"
+		"<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>;>;>;>;>;>;>;>;<<<<<<<<+<<<<<<<<+[>+]"
+		"<[<]>>>>>>>>>]<[+<]";
+	test_one(reverter, "1", "1");
+	test_one(reverter, "12", "21");
+	test_one(reverter, "123", "321");
+	test_one(reverter, "abcdef", "fedcba");
+}
 
 /*
  * Reverse the input. For example:
@@ -192,23 +221,15 @@ int main(int argc, char* argv[])
 {
 	if (argc == 2)
 	{
-#ifdef TEST
 		auto program = ">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+"
 			"<[+<]>>>>>>>>>>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]+<<<<<<<<+[>+]"
 			"<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>;>;>;>;>;>;>;>;<<<<<<<<+<<<<<<<<+[>+]"
 			"<[<]>>>>>>>>>]<[+<]";
-
-#else
-		// OK
-		auto program = hw;
 		cout << from_bit_stream(interpret(program, to_bit_stream(argv[1]))) << endl;
-		// OK
-		cout << from_bit_stream(interpret(",;,;,;,;,;,;,;,;", to_bit_stream("A"))) << endl;
-		// OK
-		cout << from_bit_stream(interpret(",;,;,;,;,;,;,;,; ,;,;,;,;,;,;,;,;", to_bit_stream("AB"))) << endl;
-		// OK
-		cout << from_bit_stream(interpret(",>,>,>,>,>,>,>,> <<<<<<<< ;>;>;>;>;>;>;>;>", to_bit_stream("Z"))) << endl;
-#endif
+	}
+	else
+	{
+		test();
 	}
 	return 0;
 }
