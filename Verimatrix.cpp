@@ -120,6 +120,7 @@ static bit_stream interpret(const string& code, const bit_stream& input)
 			if (p + offset < 0) {
 				const size_t sz = tape.size();
 				const size_t new_sz = 2 * sz;
+				tape.resize(new_sz);
 				tape.insert(tape.begin(), sz, false);
 				offset += sz;
 			}
