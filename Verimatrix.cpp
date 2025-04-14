@@ -85,7 +85,7 @@ static bit_stream interpret(const string& code, const bit_stream& input)
 	
 	bit_stream output;
 	// Arbitrary initial size.
-	vector<bool> tape(1 << 16, 0);
+	vector<bool> tape(256, 0);
 
 	int pc = 0;
 	while(pc < code.size())
@@ -119,8 +119,6 @@ static bit_stream interpret(const string& code, const bit_stream& input)
 			--p;
 			if (p + offset < 0) {
 				const size_t sz = tape.size();
-				const size_t new_sz = 2 * sz;
-				tape.resize(new_sz);
 				tape.insert(tape.begin(), sz, false);
 				offset += sz;
 			}
@@ -204,7 +202,7 @@ static void test()
 	test_one(reverter, "1", "1");
 	test_one(reverter, "12", "21");
 	test_one(reverter, "123", "321");
-	test_one(reverter, "abcdef", "fedcba");
+	test_one(reverter, "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba");
 }
 
 /*
